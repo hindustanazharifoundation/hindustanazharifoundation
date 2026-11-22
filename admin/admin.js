@@ -31,11 +31,24 @@ async function init() {
   const db = getFirestore(initializeApp(firebaseConfig));
 
   loadPhotos(); loadMembers(); loadProjects();
+  loadSug();
+  async function loadSug() {
+    say('smsg', '');
+    try {
+      const s = await getDocs(collection(db, 'suggestions'));
+      const l = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds ?? 9e9) - (a.createdAt?.seconds ?? 9e9));
+      $('slist').innerHTML = l.length ? l.map(x => `<div class="sg" data-id="${x.id}"><small>${x.createdAt ? new Date(x.createdAt.seconds * 1000).toLocaleString('en-IN') : ''} · ${esc(x.name) || 'Anonymous'}${x.contact ? ' · ' + esc(x.contact) : ''}</small><p>${esc(x.message)}</p><button class="b s d" data-sdel>Delete</button></div>`).join('') : '<p class="mut">No suggestions yet.</p>';
+    } catch (e) { console.error(e); say('smsg', 'Could not load suggestions. Publish the latest firestore.rules and refresh.', true); }
+  }
+  $('slist').onclick = async e => {
+    const row = e.target.closest('.sg'); if (!row || !e.target.hasAttribute('data-sdel') || !confirm('Delete this suggestion?')) return;
+    await deleteDoc(doc(db, 'suggestions', row.dataset.id)); loadSug();
+  };
 
   // ---- tabs
   document.querySelectorAll('.t').forEach(b => b.onclick = () => {
     document.querySelectorAll('.t').forEach(x => x.classList.toggle('on', x === b));
-    ['ph', 'mem', 'proj'].forEach(id => $(id).hidden = id !== b.dataset.t);
+    ['ph', 'mem', 'proj', 'sug'].forEach(id => $(id).hidden = id !== b.dataset.t);
   });
 
   // ---- photos: shrink in the browser, store inside Firestore (no paid Storage plan needed)

@@ -19,7 +19,7 @@
 <div id="app" hidden>
   <header><b>HAF Admin</b><span><a href="../index.html" target="_blank">View site</a> <button id="out" class="b s">Log out</button></span></header>
   <main>
-    <div class="tabs"><button class="t on" data-t="ph">Photos</button><button class="t" data-t="mem">Members</button><button class="t" data-t="proj">Projects</button></div>
+    <div class="tabs"><button class="t on" data-t="ph">Photos</button><button class="t" data-t="mem">Members</button><button class="t" data-t="proj">Projects</button><button class="t" data-t="sug">Suggestions</button></div>
 
     <section id="ph" class="card">
       <h2>Upload photos</h2>
@@ -29,6 +29,13 @@
       <p class="msg" id="umsg"></p>
       <h2>Gallery photos</h2>
       <div id="plist" class="pgrid"></div>
+    </section>
+
+    <section id="sug" class="card" hidden>
+      <h2>Suggestions from visitors</h2>
+      <p class="mut">Private. Only visible here, never on the website.</p>
+      <p class="msg" id="smsg"></p>
+      <div id="slist"></div>
     </section>
 
     <section id="proj" class="card" hidden>
