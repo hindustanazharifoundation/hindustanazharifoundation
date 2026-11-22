@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // NOTE: no login, so anyone who knows the project config can write.
+    // These rules at least stop random/oversized data from being saved.
+    match /gallery/{id} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['data','caption','createdAt'])
+        && request.resource.data.data is string && request.resource.data.data.size() < 1000000;
+      allow delete: if true;
+    }
+    match /members/{id} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['name','type','role','order'])
+        && request.resource.data.name is string && request.resource.data.name.size() < 80;
+      allow delete: if true;
+    }
+  }
+}
