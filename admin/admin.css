@@ -23,3 +23,6 @@ main{padding:0 12px 40px}
 .msg{min-height:1.4em;color:#1c6b2c;font-weight:600}.msg.err{color:#b3261e}.mut{color:#566074;font-size:14px}
 code{background:#eef2ec;padding:2px 5px;border-radius:4px}
 @media(max-width:700px){.row,.mrow .row{grid-template-columns:1fr 1fr}.row>input:first-child,.mrow .row>input:nth-child(3){grid-column:1/-1}}
+textarea{display:block;width:100%;padding:10px;border:1px solid #c9d3c2;border-radius:8px;font:inherit;margin-top:4px;resize:vertical}
+.pjrow{border-top:1px solid #dfe6d8;padding:12px 0;display:grid;gap:8px}.pjrow .row{grid-template-columns:2fr 1fr auto auto}.pjrow small{color:#566074}
+@media(max-width:700px){.pjrow .row{grid-template-columns:1fr 1fr}.pjrow .row>input:first-child{grid-column:1/-1}}

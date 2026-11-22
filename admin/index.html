@@ -19,7 +19,7 @@
 <div id="app" hidden>
   <header><b>HAF Admin</b><span><a href="../index.html" target="_blank">View site</a> <button id="out" class="b s">Log out</button></span></header>
   <main>
-    <div class="tabs"><button class="t on" data-t="ph">Photos</button><button class="t" data-t="mem">Members</button></div>
+    <div class="tabs"><button class="t on" data-t="ph">Photos</button><button class="t" data-t="mem">Members</button><button class="t" data-t="proj">Projects</button></div>
 
     <section id="ph" class="card">
       <h2>Upload photos</h2>
@@ -29,6 +29,18 @@
       <p class="msg" id="umsg"></p>
       <h2>Gallery photos</h2>
       <div id="plist" class="pgrid"></div>
+    </section>
+
+    <section id="proj" class="card" hidden>
+      <h2>Add past project (PDF)</h2>
+      <label>Project name<input id="pn" maxlength="100" placeholder="e.g. Taking Kids for a Picnic"></label>
+      <label>Date (optional)<input id="pdt" maxlength="40" placeholder="e.g. 25 Oct 2026"></label>
+      <label>Short description (optional)<textarea id="pds" maxlength="220" rows="2"></textarea></label>
+      <label>PDF file (up to 10 MB)<input id="pf" type="file" accept="application/pdf"></label>
+      <button id="pup" class="b">Upload project</button>
+      <p class="msg" id="pmsg"></p>
+      <h2>Projects on the site</h2>
+      <div id="pjlist"></div>
     </section>
 
     <section id="mem" class="card" hidden>

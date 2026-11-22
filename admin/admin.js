@@ -27,15 +27,15 @@ try { if (sessionStorage.getItem('haf_admin') === '1') unlock(); } catch (e) {}
 async function init() {
   const { initializeApp } = await import(FB + 'firebase-app.js');
   const fs = await import(FB + 'firebase-firestore.js');
-  const { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } = fs;
+  const { getFirestore, collection, getDocs, addDoc, setDoc, updateDoc, deleteDoc, doc, serverTimestamp } = fs;
   const db = getFirestore(initializeApp(firebaseConfig));
 
-  loadPhotos(); loadMembers();
+  loadPhotos(); loadMembers(); loadProjects();
 
   // ---- tabs
   document.querySelectorAll('.t').forEach(b => b.onclick = () => {
     document.querySelectorAll('.t').forEach(x => x.classList.toggle('on', x === b));
-    $('ph').hidden = b.dataset.t !== 'ph'; $('mem').hidden = b.dataset.t !== 'mem';
+    ['ph', 'mem', 'proj'].forEach(id => $(id).hidden = id !== b.dataset.t);
   });
 
   // ---- photos: shrink in the browser, store inside Firestore (no paid Storage plan needed)
@@ -84,6 +84,55 @@ async function init() {
   $('plist').onclick = async e => {
     const id = e.target.dataset.del; if (!id || !confirm('Delete this photo from the site?')) return;
     await deleteDoc(doc(db, 'gallery', id)); loadPhotos();
+  };
+
+  // ---- projects (PDF split into 600 KB pieces, stored in Firestore)
+  const CHUNK = 600000, MAXPDF = 10 * 1024 * 1024;
+  const readB64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); });
+  const mb = n => (n / 1048576).toFixed(1) + ' MB';
+  async function wipeChunks(id) {
+    const s = await getDocs(collection(db, 'projects', id, 'chunks'));
+    for (const d of s.docs) await deleteDoc(d.ref);
+  }
+  $('pup').onclick = async () => {
+    const title = $('pn').value.trim(), f = $('pf').files[0];
+    if (!title) return say('pmsg', 'Enter the project name.', true);
+    if (!f) return say('pmsg', 'Choose a PDF file.', true);
+    if (f.type !== 'application/pdf' && !/\.pdf$/i.test(f.name)) return say('pmsg', 'Only PDF files are allowed.', true);
+    if (f.size > MAXPDF) return say('pmsg', `This PDF is ${mb(f.size)}. Please compress it below 10 MB (ilovepdf.com / smallpdf.com) and try again.`, true);
+    $('pup').disabled = true;
+    const ref = doc(collection(db, 'projects')), n = Math.ceil(f.size / CHUNK);
+    try {
+      for (let i = 0; i < n; i++) {
+        say('pmsg', `Uploading part ${i + 1} of ${n}…`);
+        const d = await readB64(f.slice(i * CHUNK, (i + 1) * CHUNK));
+        await setDoc(doc(db, 'projects', ref.id, 'chunks', String(i).padStart(3, '0')), { i, d });
+      }
+      await setDoc(ref, { title, date: $('pdt').value.trim(), desc: $('pds').value.trim(), fileName: f.name, size: f.size, chunks: n, createdAt: serverTimestamp() });
+      $('pn').value = ''; $('pdt').value = ''; $('pds').value = ''; $('pf').value = '';
+      say('pmsg', 'Done. Project added to the site.');
+    } catch (e) {
+      console.error(e); try { await wipeChunks(ref.id); } catch (_) {}
+      say('pmsg', 'Upload failed. Check your internet and Firestore rules, then try again.', true);
+    }
+    $('pup').disabled = false; loadProjects();
+  };
+  async function loadProjects() {
+    const s = await getDocs(collection(db, 'projects'));
+    const l = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds ?? 9e9) - (a.createdAt?.seconds ?? 9e9));
+    $('pjlist').innerHTML = l.length ? l.map(p => `<div class="pjrow" data-id="${p.id}"><div class="row">
+      <input class="pt" value="${esc(p.title)}" aria-label="Project name"><input class="pdt" value="${esc(p.date)}" placeholder="Date" aria-label="Date">
+      <button class="b s" data-psave>Save</button><button class="b s d" data-prm>Delete</button></div>
+      <input class="pds" value="${esc(p.desc)}" placeholder="Short description" aria-label="Description"><small>${esc(p.fileName)} · ${mb(p.size || 0)}</small></div>`).join('') : '<p class="mut">No projects yet.</p>';
+  }
+  $('pjlist').onclick = async e => {
+    const row = e.target.closest('.pjrow'); if (!row) return; const id = row.dataset.id;
+    if (e.target.hasAttribute('data-psave')) {
+      await updateDoc(doc(db, 'projects', id), { title: row.querySelector('.pt').value.trim(), date: row.querySelector('.pdt').value.trim(), desc: row.querySelector('.pds').value.trim() });
+      say('pmsg', 'Saved.'); loadProjects();
+    } else if (e.target.hasAttribute('data-prm') && confirm('Delete this project and its PDF?')) {
+      say('pmsg', 'Deleting…'); await wipeChunks(id); await deleteDoc(doc(db, 'projects', id)); say('pmsg', 'Deleted.'); loadProjects();
+    }
   };
 
   // ---- members
