@@ -10,7 +10,7 @@ const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.
   if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); setTimeout(() => e.target.style.transitionDelay = '', 1000); }
 }), { threshold: 0.12 }) : null;
 function reveal() {
-  document.querySelectorAll('h2,.v,.p,.work li,.motto,.goal,.tag,.ct>div,.gal button,section p').forEach((el, i) => {
+  document.querySelectorAll('h2,.v,.p,.work li,.motto,.goal,.tag,.ct>div,.gal button,.pj,section p').forEach((el, i) => {
     if (el.classList.contains('rv')) return;
     el.classList.add('rv'); el.style.transitionDelay = (i % 4) * 80 + 'ms';
     io ? io.observe(el) : el.classList.add('in');
@@ -63,20 +63,46 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowRight') show(cur + 1);
 });
 
+// ---- past projects (PDFs are stored in small pieces in Firestore and put back together on click)
+let fsApi = null;
+function renderProjects(list) {
+  const g = document.getElementById('projs');
+  if (!list.length) { g.innerHTML = '<p class="empty">Project reports coming soon.</p>'; reveal(); return; }
+  g.innerHTML = list.map(p => `<button class="pj" data-id="${esc(p.id)}"><span class="pdf">PDF</span><span class="pt">${esc(p.title)}</span>${p.date ? `<span class="pd">${esc(p.date)}</span>` : ''}${p.desc ? `<span class="pc">${esc(p.desc)}</span>` : ''}<span class="go">View PDF →</span></button>`).join('');
+  reveal();
+}
+async function openPdf(id) {
+  const w = window.open('', '_blank');
+  if (w) w.document.write('<p style="font:18px sans-serif;padding:24px">Loading PDF…</p>');
+  try {
+    const { db, collection, getDocs } = fsApi;
+    const snap = await getDocs(collection(db, 'projects', id, 'chunks'));
+    const parts = snap.docs.map(d => d.data()).sort((a, b) => a.i - b.i).map(c => Uint8Array.from(atob(c.d), ch => ch.charCodeAt(0)));
+    if (!parts.length) throw new Error('empty');
+    const url = URL.createObjectURL(new Blob(parts, { type: 'application/pdf' }));
+    if (w) w.location.href = url; else location.href = url;
+  } catch (err) {
+    console.error(err); if (w) w.close(); alert('Could not open the PDF. Please try again.');
+  }
+}
+document.getElementById('projs').onclick = e => { const b = e.target.closest('.pj'); if (b && fsApi) openPdf(b.dataset.id); };
+
 // ---- load data from Firebase (falls back to defaults if not set up / offline)
 async function load() {
-  if (!isConfigured) { renderMembers(DEFAULT_MEMBERS); renderGallery([]); return; }
+  if (!isConfigured) { renderMembers(DEFAULT_MEMBERS); renderGallery([]); renderProjects([]); return; }
   try {
     const { initializeApp } = await import(FB + 'firebase-app.js');
     const { getFirestore, collection, getDocs } = await import(FB + 'firebase-firestore.js');
     const db = getFirestore(initializeApp(firebaseConfig));
-    const [ms, gs] = await Promise.all([getDocs(collection(db, 'members')), getDocs(collection(db, 'gallery'))]);
+    fsApi = { db, collection, getDocs };
+    const [ms, gs, ps] = await Promise.all([getDocs(collection(db, 'members')), getDocs(collection(db, 'gallery')), getDocs(collection(db, 'projects')).catch(() => ({ docs: [] }))]);
+    renderProjects(ps.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0)));
     const members = ms.docs.map(d => d.data());
     renderMembers(members.length ? members : DEFAULT_MEMBERS);
     renderGallery(gs.docs.map(d => d.data()).sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0)));
   } catch (err) {
     console.error(err);
-    renderMembers(DEFAULT_MEMBERS); renderGallery([]);
+    renderMembers(DEFAULT_MEMBERS); renderGallery([]); renderProjects([]);
   }
 }
 reveal();
