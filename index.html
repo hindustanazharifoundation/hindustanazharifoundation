@@ -64,15 +64,17 @@
 </div></section>
 
 <section id="projects"><div class="wrap">
-<h2>Our Projects</h2>
+<h2>Past Projects</h2>
 <p>Reports of the projects and programmes we have completed. Tap a project to open its PDF.</p>
 <div class="projs" id="projs"><p class="empty">Loading projects…</p></div>
+<div class="more" id="more-projs"></div>
 </div></section>
 
 <section id="gallery" class="alt"><div class="wrap">
 <h2>Gallery</h2>
 <p>Moments from our work. Tap any photo to enlarge.</p>
 <div class="gal" id="gal"><p class="empty">Loading photos…</p></div>
+<div class="more" id="more-gal"></div>
 <p style="margin-top:26px"><a class="btn ig" href="https://www.instagram.com/hindustanazharifoundation" target="_blank" rel="noopener">See more on Instagram</a> <a class="btn fb" href="https://www.facebook.com/share/1JaBMzHNDM/" target="_blank" rel="noopener">Follow on Facebook</a></p>
 </div></section>
 
@@ -81,23 +83,36 @@
 <div class="team" id="founders"></div>
 <h3 class="mh" id="mh">Members</h3>
 <div class="team" id="members"></div>
+<div class="more" id="more-members"></div>
 </div></section>
 
-<section id="contact" class="alt"><div class="wrap ct"><div>
+<section id="suggest" class="alt"><div class="wrap narrow">
+<h2>Suggestion Box</h2>
+<p>Have an idea or feedback that can help us improve? Tell us. Your message goes privately to our team and is never shown on this website.</p>
+<form id="sf" class="sf" novalidate>
+<label>Your suggestion *<textarea id="sm" rows="5" maxlength="1000" required></textarea></label>
+<div class="f2"><label>Name (optional)<input id="sn" maxlength="80" autocomplete="name"></label><label>Phone or email (optional)<input id="sc" maxlength="100"></label></div>
+<input type="text" id="hp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0">
+<button class="btn" type="submit" id="sb">Send suggestion</button>
+<div id="sx" class="sx" role="status"></div>
+</form></div></section>
+
+<section id="contact"><div class="wrap ct"><div>
 <h2>Get in touch</h2>
 <p>Want to volunteer, donate or bring us to a community that needs help? Call or write to us.</p>
 <dl><dt>Email</dt><dd><a href="mailto:hindustanazharifoundation@gmail.com">hindustanazharifoundation@gmail.com</a></dd>
 <dt>Instagram</dt><dd><a href="https://www.instagram.com/hindustanazharifoundation" target="_blank" rel="noopener">@hindustanazharifoundation</a></dd>
 <dt>Facebook</dt><dd><a href="https://www.facebook.com/share/1JaBMzHNDM/" target="_blank" rel="noopener">Hindustan Azhari Foundation</a></dd>
 <dt>WhatsApp</dt><dd><a href="https://wa.me/917278904786?text=Hello%20Hindustan%20Azhari%20Foundation" target="_blank" rel="noopener">Chat on 7278904786</a></dd>
+<dt>WhatsApp Channel</dt><dd><a href="https://whatsapp.com/channel/0029VbCZEJDAzNbvonL2uA29" target="_blank" rel="noopener">Join our channel</a></dd>
 <dt>Phone</dt><dd><a href="tel:+917998205786">7998205786</a> · <a href="tel:+917278904786">7278904786</a> · <a href="tel:+917998034786">7998034786</a></dd></dl>
 </div><div><h2>Find us</h2>
 <dl><dt>Address</dt><dd>51/1 Bashiruddin Munshi Lane, Howrah 711101, West Bengal</dd>
 <dt>Registration No.</dt><dd>050200307</dd><dt>NGO Darpan ID</dt><dd>WB/2026/1229177</dd></dl>
 </div></div></section>
 </main>
-<footer><div class="wrap">© 2026 Hindustan Azhari Foundation · Hope for People · <a href="https://www.instagram.com/hindustanazharifoundation" target="_blank" rel="noopener">Instagram</a> · <a href="https://www.facebook.com/share/1JaBMzHNDM/" target="_blank" rel="noopener">Facebook</a> · <a href="https://wa.me/917278904786?text=Hello%20Hindustan%20Azhari%20Foundation" target="_blank" rel="noopener">WhatsApp</a></div></footer>
-<a class="wafab" href="https://wa.me/917278904786?text=Hello%20Hindustan%20Azhari%20Foundation" target="_blank" rel="noopener" aria-label="Chat on WhatsApp"><svg><use href="#i-wa"/></svg></a>
+<footer><div class="wrap">© 2026 Hindustan Azhari Foundation · Hope for People · <a href="https://www.instagram.com/hindustanazharifoundation" target="_blank" rel="noopener">Instagram</a> · <a href="https://www.facebook.com/share/1JaBMzHNDM/" target="_blank" rel="noopener">Facebook</a> · <a href="https://wa.me/917278904786?text=Hello%20Hindustan%20Azhari%20Foundation" target="_blank" rel="noopener">WhatsApp</a> · <a href="https://whatsapp.com/channel/0029VbCZEJDAzNbvonL2uA29" target="_blank" rel="noopener">Channel</a> · <a href="#suggest">Suggestion box</a></div></footer>
+<a class="wafab" href="https://whatsapp.com/channel/0029VbCZEJDAzNbvonL2uA29" target="_blank" rel="noopener" aria-label="Join our WhatsApp channel" title="Join our WhatsApp channel"><svg><use href="#i-wa"/></svg></a>
 <div id="lb" role="dialog" aria-label="Photo viewer"><button class="x" aria-label="Close">×</button><button class="pv" aria-label="Previous">‹</button><figure><img alt=""><figcaption></figcaption></figure><button class="nx" aria-label="Next">›</button></div>
 <script type="module" src="script.js"></script>
 </body></html>

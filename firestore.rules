@@ -1,8 +1,17 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // No Firebase login (admin page uses a simple password), so these rules
-    // only allow read for everyone and block wrong/oversized data on write.
+    // Gallery, projects and members: open (admin page uses a simple password) with data checks.
+    // Suggestions: visitors can add them; they are not shown on the website, only in the admin page.
+    match /suggestions/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['name','contact','message','createdAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 80
+        && request.resource.data.contact is string && request.resource.data.contact.size() <= 100
+        && request.resource.data.message is string && request.resource.data.message.size() >= 3
+        && request.resource.data.message.size() <= 1000
+        && request.resource.data.createdAt == request.time;
+      allow read, delete: if true;
+    }
     match /gallery/{id} {
       allow read: if true;
       allow create, update: if request.resource.data.keys().hasOnly(['data','caption','createdAt'])

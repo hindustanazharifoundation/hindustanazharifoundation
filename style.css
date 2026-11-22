@@ -102,3 +102,14 @@ footer{background:#0f2417;color:#d9e5d9;padding:28px 0 calc(28px + env(safe-area
 .go{margin-top:auto;padding-top:10px;font-weight:700;color:var(--grn)}
 @media(max-width:1100px){nav{gap:14px}.links{gap:14px}nav a.l{font-size:15px}.brand{font-size:17px}}
 @media(max-width:860px){nav a.l{font-size:16px}}
+
+.more{margin-top:26px;text-align:center}.more:empty{display:none}
+.btn.vm{background:none;border:2px solid var(--navy);color:var(--navy);padding:8px 26px;cursor:pointer;font:inherit;font-weight:700}
+.btn.vm:hover{background:var(--navy);color:var(--bg)}
+.wafab:hover:before{content:"Join our WhatsApp channel";position:absolute;right:70px;background:#111;color:#fff;padding:6px 12px;border-radius:8px;font-size:14px;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.sf{margin-top:20px;position:relative}.sf label{display:block;font-weight:700;font-size:15px;margin:14px 0 0;color:var(--navy)}
+.sf textarea,.sf input:not([type=hidden]){display:block;width:100%;padding:12px;margin-top:6px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--surf);color:var(--ink)}
+.sf textarea{resize:vertical;min-height:130px}.f2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.sf .btn{margin-top:18px;border:0;cursor:pointer;font:inherit;font-weight:700}.sf .btn:disabled{opacity:.6}
+.sx{min-height:1.6em;margin-top:8px;font-weight:600}.sx.ok{color:var(--grn)}.sx.bad{color:#c62828}
+@media(max-width:600px){.f2{grid-template-columns:1fr}}

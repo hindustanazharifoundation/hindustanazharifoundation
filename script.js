@@ -1,24 +1,27 @@
 import { firebaseConfig, isConfigured, FB } from './firebase-config.js';
 
+const $ = id => document.getElementById(id);
+const LIMITS = { projects: 3, photos: 15, members: 20 };
+
 // ---- mobile menu
-const mb = document.getElementById('mb'), ln = document.querySelector('.links');
+const mb = $('mb'), ln = document.querySelector('.links');
 mb.onclick = () => { const o = ln.classList.toggle('on'); mb.setAttribute('aria-expanded', o); };
-ln.onclick = e => { if (e.target.tagName === 'A') ln.classList.remove('on'); };
+ln.onclick = e => { if (e.target.closest('a')) ln.classList.remove('on'); };
 
 // ---- scroll reveal
 const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => {
   if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); setTimeout(() => e.target.style.transitionDelay = '', 1000); }
 }), { threshold: 0.12 }) : null;
 function reveal() {
-  document.querySelectorAll('h2,.v,.p,.work li,.motto,.goal,.tag,.ct>div,.gal button,.pj,section p').forEach((el, i) => {
+  document.querySelectorAll('h2,.v,.p,.work li,.motto,.goal,.tag,.ct>div,.gal button,.pj,.more,section p').forEach((el, i) => {
     if (el.classList.contains('rv')) return;
     el.classList.add('rv'); el.style.transitionDelay = (i % 4) * 80 + 'ms';
     io ? io.observe(el) : el.classList.add('in');
   });
 }
 
-// ---- helpers
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const moreBtn = (id, rest) => { $(id).innerHTML = rest > 0 ? `<button class="btn vm" type="button">View more (${rest})</button>` : ''; };
 
 // shown until you add your own from the admin panel
 const DEFAULT_MEMBERS = [
@@ -31,27 +34,35 @@ const DEFAULT_MEMBERS = [
   { name: 'Shadab Shams', type: 'member', order: 7 }
 ];
 
-function renderMembers(list) {
-  const sorted = [...list].sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
-  const f = sorted.filter(m => m.type === 'founder'), m = sorted.filter(x => x.type !== 'founder');
-  document.getElementById('founders').innerHTML = f.map(x => `<div class="p"><h3>${esc(x.name)}</h3>${x.role ? `<span>${esc(x.role)}</span>` : ''}</div>`).join('');
-  document.getElementById('members').innerHTML = m.map(x => `<div class="p m"><h3>${esc(x.name)}</h3></div>`).join('');
-  document.getElementById('mh').style.display = m.length ? '' : 'none';
+// ---- team (founders: all, members: first 20 + View more)
+let MEM = [];
+function renderMembers(list, all) {
+  if (list) MEM = [...list].sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+  const f = MEM.filter(m => m.type === 'founder'), m = MEM.filter(x => x.type !== 'founder');
+  const shown = all ? m : m.slice(0, LIMITS.members);
+  $('founders').innerHTML = f.map(x => `<div class="p"><h3>${esc(x.name)}</h3>${x.role ? `<span>${esc(x.role)}</span>` : ''}</div>`).join('');
+  $('members').innerHTML = shown.map(x => `<div class="p m"><h3>${esc(x.name)}</h3></div>`).join('');
+  $('mh').style.display = m.length ? '' : 'none';
+  moreBtn('more-members', all ? 0 : m.length - shown.length);
   reveal();
 }
+$('more-members').onclick = e => { if (e.target.closest('button')) renderMembers(null, true); };
 
-// ---- gallery + lightbox
+// ---- gallery (first 15 + View more) and lightbox
 let photos = [], cur = 0;
-const lb = document.getElementById('lb'), li = lb.querySelector('img'), cap = lb.querySelector('figcaption');
+const lb = $('lb'), li = lb.querySelector('img'), cap = lb.querySelector('figcaption');
 function show(i) { cur = (i + photos.length) % photos.length; li.src = photos[cur].data; li.alt = photos[cur].caption || 'Gallery photo'; cap.textContent = photos[cur].caption || ''; lb.classList.add('on'); }
-function renderGallery(list) {
-  photos = list;
-  const g = document.getElementById('gal');
-  if (!list.length) { g.innerHTML = '<p class="empty">Photos coming soon.</p>'; reveal(); return; }
-  g.innerHTML = list.map((p, i) => `<button class="${i % 7 === 0 ? 'w t' : i % 7 === 3 ? 'w' : ''}" data-i="${i}" aria-label="Open photo ${i + 1}"><img src="${p.data}" alt="${esc(p.caption || 'Gallery photo')}" loading="lazy"></button>`).join('');
+function renderGallery(list, all) {
+  if (list) photos = list;
+  const g = $('gal');
+  if (!photos.length) { g.innerHTML = '<p class="empty">Photos coming soon.</p>'; moreBtn('more-gal', 0); reveal(); return; }
+  const shown = all ? photos : photos.slice(0, LIMITS.photos);
+  g.innerHTML = shown.map((p, i) => `<button class="${i % 7 === 0 ? 'w t' : i % 7 === 3 ? 'w' : ''}" data-i="${i}" aria-label="Open photo ${i + 1}"><img src="${p.data}" alt="${esc(p.caption || 'Gallery photo')}" loading="lazy"></button>`).join('');
+  moreBtn('more-gal', all ? 0 : photos.length - shown.length);
   reveal();
 }
-document.getElementById('gal').onclick = e => { const b = e.target.closest('button'); if (b) show(+b.dataset.i); };
+$('gal').onclick = e => { const b = e.target.closest('button'); if (b) show(+b.dataset.i); };
+$('more-gal').onclick = e => { if (e.target.closest('button')) renderGallery(null, true); };
 lb.querySelector('.x').onclick = () => lb.classList.remove('on');
 lb.querySelector('.pv').onclick = e => { e.stopPropagation(); show(cur - 1); };
 lb.querySelector('.nx').onclick = e => { e.stopPropagation(); show(cur + 1); };
@@ -63,12 +74,15 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowRight') show(cur + 1);
 });
 
-// ---- past projects (PDFs are stored in small pieces in Firestore and put back together on click)
-let fsApi = null;
-function renderProjects(list) {
-  const g = document.getElementById('projs');
-  if (!list.length) { g.innerHTML = '<p class="empty">Project reports coming soon.</p>'; reveal(); return; }
-  g.innerHTML = list.map(p => `<button class="pj" data-id="${esc(p.id)}"><span class="pdf">PDF</span><span class="pt">${esc(p.title)}</span>${p.date ? `<span class="pd">${esc(p.date)}</span>` : ''}${p.desc ? `<span class="pc">${esc(p.desc)}</span>` : ''}<span class="go">View PDF →</span></button>`).join('');
+// ---- past projects (first 3 + View more). PDFs are stored in pieces in Firestore and joined on click.
+let fsApi = null, PJ = [];
+function renderProjects(list, all) {
+  if (list) PJ = list;
+  const g = $('projs');
+  if (!PJ.length) { g.innerHTML = '<p class="empty">Project reports coming soon.</p>'; moreBtn('more-projs', 0); reveal(); return; }
+  const shown = all ? PJ : PJ.slice(0, LIMITS.projects);
+  g.innerHTML = shown.map(p => `<button class="pj" data-id="${esc(p.id)}"><span class="pdf">PDF</span><span class="pt">${esc(p.title)}</span>${p.date ? `<span class="pd">${esc(p.date)}</span>` : ''}${p.desc ? `<span class="pc">${esc(p.desc)}</span>` : ''}<span class="go">View PDF →</span></button>`).join('');
+  moreBtn('more-projs', all ? 0 : PJ.length - shown.length);
   reveal();
 }
 async function openPdf(id) {
@@ -85,17 +99,21 @@ async function openPdf(id) {
     console.error(err); if (w) w.close(); alert('Could not open the PDF. Please try again.');
   }
 }
-document.getElementById('projs').onclick = e => { const b = e.target.closest('.pj'); if (b && fsApi) openPdf(b.dataset.id); };
+$('projs').onclick = e => { const b = e.target.closest('.pj'); if (b && fsApi) openPdf(b.dataset.id); };
+$('more-projs').onclick = e => { if (e.target.closest('button')) renderProjects(null, true); };
 
 // ---- load data from Firebase (falls back to defaults if not set up / offline)
 async function load() {
   if (!isConfigured) { renderMembers(DEFAULT_MEMBERS); renderGallery([]); renderProjects([]); return; }
   try {
     const { initializeApp } = await import(FB + 'firebase-app.js');
-    const { getFirestore, collection, getDocs } = await import(FB + 'firebase-firestore.js');
+    const { getFirestore, collection, getDocs, addDoc, serverTimestamp } = await import(FB + 'firebase-firestore.js');
     const db = getFirestore(initializeApp(firebaseConfig));
-    fsApi = { db, collection, getDocs };
-    const [ms, gs, ps] = await Promise.all([getDocs(collection(db, 'members')), getDocs(collection(db, 'gallery')), getDocs(collection(db, 'projects')).catch(() => ({ docs: [] }))]);
+    fsApi = { db, collection, getDocs, addDoc, serverTimestamp };
+    const [ms, gs, ps] = await Promise.all([
+      getDocs(collection(db, 'members')), getDocs(collection(db, 'gallery')),
+      getDocs(collection(db, 'projects')).catch(() => ({ docs: [] }))
+    ]);
     renderProjects(ps.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0)));
     const members = ms.docs.map(d => d.data());
     renderMembers(members.length ? members : DEFAULT_MEMBERS);
@@ -105,5 +123,28 @@ async function load() {
     renderMembers(DEFAULT_MEMBERS); renderGallery([]); renderProjects([]);
   }
 }
+
+// ---- private suggestion box (saved in Firestore, visible only in the admin panel)
+const sx = $('sx');
+const note = (t, bad) => { sx.textContent = t; sx.className = 'sx' + (bad ? ' bad' : ' ok'); };
+$('sf').onsubmit = async e => {
+  e.preventDefault();
+  if ($('hp').value) { note('Thank you! Your suggestion has been sent.'); return; } // bots fill the hidden field
+  const message = $('sm').value.trim();
+  if (message.length < 3) return note('Please write your suggestion first.', true);
+  try { if (Date.now() - (+localStorage.getItem('haf_sug') || 0) < 30000) return note('Please wait a little before sending another one.', true); } catch (_) {}
+  $('sb').disabled = true; note('Sending…');
+  try {
+    await ready;
+    if (!fsApi) throw new Error('not ready');
+    await fsApi.addDoc(fsApi.collection(fsApi.db, 'suggestions'), { name: $('sn').value.trim(), contact: $('sc').value.trim(), message, createdAt: fsApi.serverTimestamp() });
+    $('sf').reset(); note('Thank you! Your suggestion has been sent privately to our team.');
+    try { localStorage.setItem('haf_sug', String(Date.now())); } catch (_) {}
+  } catch (err) {
+    console.error(err); note('Sorry, could not send right now. Please try again later.', true);
+  }
+  $('sb').disabled = false;
+};
+
 reveal();
-load();
+const ready = load();
