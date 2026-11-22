@@ -5,6 +5,18 @@ const mb = document.getElementById('mb'), ln = document.querySelector('.links');
 mb.onclick = () => { const o = ln.classList.toggle('on'); mb.setAttribute('aria-expanded', o); };
 ln.onclick = e => { if (e.target.tagName === 'A') ln.classList.remove('on'); };
 
+// ---- scroll reveal
+const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); setTimeout(() => e.target.style.transitionDelay = '', 1000); }
+}), { threshold: 0.12 }) : null;
+function reveal() {
+  document.querySelectorAll('h2,.v,.p,.work li,.motto,.goal,.tag,.ct>div,.gal button,section p').forEach((el, i) => {
+    if (el.classList.contains('rv')) return;
+    el.classList.add('rv'); el.style.transitionDelay = (i % 4) * 80 + 'ms';
+    io ? io.observe(el) : el.classList.add('in');
+  });
+}
+
 // ---- helpers
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -25,6 +37,7 @@ function renderMembers(list) {
   document.getElementById('founders').innerHTML = f.map(x => `<div class="p"><h3>${esc(x.name)}</h3>${x.role ? `<span>${esc(x.role)}</span>` : ''}</div>`).join('');
   document.getElementById('members').innerHTML = m.map(x => `<div class="p m"><h3>${esc(x.name)}</h3></div>`).join('');
   document.getElementById('mh').style.display = m.length ? '' : 'none';
+  reveal();
 }
 
 // ---- gallery + lightbox
@@ -34,8 +47,9 @@ function show(i) { cur = (i + photos.length) % photos.length; li.src = photos[cu
 function renderGallery(list) {
   photos = list;
   const g = document.getElementById('gal');
-  if (!list.length) { g.innerHTML = '<p class="empty">Photos coming soon.</p>'; return; }
+  if (!list.length) { g.innerHTML = '<p class="empty">Photos coming soon.</p>'; reveal(); return; }
   g.innerHTML = list.map((p, i) => `<button class="${i % 7 === 0 ? 'w t' : i % 7 === 3 ? 'w' : ''}" data-i="${i}" aria-label="Open photo ${i + 1}"><img src="${p.data}" alt="${esc(p.caption || 'Gallery photo')}" loading="lazy"></button>`).join('');
+  reveal();
 }
 document.getElementById('gal').onclick = e => { const b = e.target.closest('button'); if (b) show(+b.dataset.i); };
 lb.querySelector('.x').onclick = () => lb.classList.remove('on');
@@ -65,4 +79,5 @@ async function load() {
     renderMembers(DEFAULT_MEMBERS); renderGallery([]);
   }
 }
+reveal();
 load();
