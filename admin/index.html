@@ -8,8 +8,16 @@
 </head><body>
 <p class="card mut" id="cfgwarn" hidden>Firebase is not set up yet. Open <code>firebase-config.js</code> in the main folder and paste your config.</p>
 
-<div id="app">
-  <header><b>HAF Admin</b><span><a href="../index.html" target="_blank">View site</a></span></header>
+<div id="login" class="card narrow">
+  <img src="../logo.jpg" alt="" class="lg">
+  <h1>HAF Admin</h1>
+  <label>Password<input id="pw" type="password" autocomplete="current-password" autofocus></label>
+  <button id="go" class="b">Log in</button>
+  <p class="msg" id="lmsg"></p>
+</div>
+
+<div id="app" hidden>
+  <header><b>HAF Admin</b><span><a href="../index.html" target="_blank">View site</a> <button id="out" class="b s">Log out</button></span></header>
   <main>
     <div class="tabs"><button class="t on" data-t="ph">Photos</button><button class="t" data-t="mem">Members</button></div>
 

@@ -3,8 +3,26 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const say = (id, t, err) => { const e = $(id); e.textContent = t; e.classList.toggle('err', !!err); };
 
-if (!isConfigured) $('cfgwarn').hidden = false;
-else init();
+// ---- password gate (stored as a SHA-256 hash, not plain text)
+const PASS_HASH = '255ae9046a60af557aff05dee4fc59f6394e01235225d4ed88fc931641755ef9';
+const sha = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
+let started = false;
+function unlock() {
+  $('login').hidden = true; $('app').hidden = false;
+  if (!isConfigured) { $('cfgwarn').hidden = false; return; }
+  if (!started) { started = true; init(); }
+}
+async function tryLogin() {
+  say('lmsg', '');
+  if (await sha($('pw').value) === PASS_HASH) {
+    try { sessionStorage.setItem('haf_admin', '1'); } catch (e) {}
+    $('pw').value = ''; unlock();
+  } else say('lmsg', 'Wrong password.', true);
+}
+$('go').onclick = tryLogin;
+$('pw').onkeydown = e => { if (e.key === 'Enter') tryLogin(); };
+$('out').onclick = () => { try { sessionStorage.removeItem('haf_admin'); } catch (e) {} location.reload(); };
+try { if (sessionStorage.getItem('haf_admin') === '1') unlock(); } catch (e) {}
 
 async function init() {
   const { initializeApp } = await import(FB + 'firebase-app.js');
