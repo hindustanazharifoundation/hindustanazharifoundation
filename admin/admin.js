@@ -48,7 +48,7 @@ async function init() {
   // ---- tabs
   document.querySelectorAll('.t').forEach(b => b.onclick = () => {
     document.querySelectorAll('.t').forEach(x => x.classList.toggle('on', x === b));
-    ['ph', 'mem', 'proj', 'sug'].forEach(id => $(id).hidden = id !== b.dataset.t);
+    ['ph', 'mem', 'proj', 'sug', 'ev', 'vm', 'pt'].forEach(id => $(id).hidden = id !== b.dataset.t);
   });
 
   // ---- photos: shrink in the browser, store inside Firestore (no paid Storage plan needed)
@@ -147,6 +147,71 @@ async function init() {
       say('pmsg', 'Deleting…'); await wipeChunks(id); await deleteDoc(doc(db, 'projects', id)); say('pmsg', 'Deleted.'); loadProjects();
     }
   };
+
+  // ---- upcoming events (poster is shrunk in the browser, like gallery photos)
+  $('eup').onclick = async () => {
+    const t = $('et').value.trim(), f = $('ep').files[0];
+    if (!t) return say('emsg', 'Enter the title.', true);
+    if (!f) return say('emsg', 'Choose a poster image.', true);
+    let y = $('ey').value.trim(); if (y && !/^https?:\/\//i.test(y)) y = 'https://' + y;
+    $('eup').disabled = true; say('emsg', 'Uploading…');
+    try {
+      const poster = await shrink(f);
+      await addDoc(collection(db, 'events'), { poster, title: t, desc: $('ed').value.trim(), youtube: y, createdAt: serverTimestamp() });
+      $('et').value = ''; $('ed').value = ''; $('ey').value = ''; $('ep').value = '';
+      say('emsg', 'Done. Event added to the site.');
+    } catch (e) { console.error(e); say('emsg', 'Upload failed. Check your internet and Firestore rules, then try again.', true); }
+    $('eup').disabled = false; loadEvents();
+  };
+  async function loadEvents() {
+    const s = await getDocs(collection(db, 'events'));
+    const l = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds ?? 9e9) - (a.createdAt?.seconds ?? 9e9));
+    $('elist').innerHTML = l.length ? l.map(x => `<div class="evrow" data-id="${x.id}"><img src="${x.poster}" alt=""><div>
+      <input class="et" value="${esc(x.title)}" aria-label="Title"><input class="ey" value="${esc(x.youtube)}" placeholder="YouTube link" aria-label="YouTube link"><input class="ed" value="${esc(x.desc)}" placeholder="Short description" aria-label="Description">
+      <div class="btns"><button class="b s" data-esave>Save</button><button class="b s d" data-erm>Delete</button></div></div></div>`).join('') : '<p class="mut">No events yet.</p>';
+  }
+  $('elist').onclick = async e => {
+    const row = e.target.closest('.evrow'); if (!row) return; const id = row.dataset.id;
+    if (e.target.hasAttribute('data-esave')) {
+      let y = row.querySelector('.ey').value.trim(); if (y && !/^https?:\/\//i.test(y)) y = 'https://' + y;
+      const title = row.querySelector('.et').value.trim(); if (!title) return say('emsg', 'Title cannot be empty.', true);
+      await updateDoc(doc(db, 'events', id), { title, youtube: y, desc: row.querySelector('.ed').value.trim() });
+      say('emsg', 'Saved.'); loadEvents();
+    } else if (e.target.hasAttribute('data-erm') && confirm('Delete this event?')) {
+      await deleteDoc(doc(db, 'events', id)); say('emsg', 'Deleted.'); loadEvents();
+    }
+  };
+
+  // ---- valuable members and supporters/partners (simple lists)
+  function crud(col, listId, msgId, fields) {
+    async function load() {
+      const s = await getDocs(collection(db, col));
+      const l = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+      $(listId).innerHTML = l.length ? l.map(x => `<div class="mrow" data-id="${x.id}"><div class="row cr">${fields.map(f => `<input data-k="${f.k}" type="${f.type || 'text'}" value="${esc(x[f.k] ?? '')}" placeholder="${f.ph}" aria-label="${f.ph}">`).join('')}<button class="b s" data-save>Save</button><button class="b s d" data-rm>Delete</button></div></div>`).join('') : '<p class="mut">Nothing added yet.</p>';
+    }
+    $(listId).onclick = async e => {
+      const row = e.target.closest('.mrow'); if (!row) return; const id = row.dataset.id;
+      if (e.target.hasAttribute('data-save')) {
+        const data = {}; row.querySelectorAll('input').forEach(i => { data[i.dataset.k] = i.type === 'number' ? (+i.value || 10) : i.value.trim(); });
+        if (!data.name) return say(msgId, 'Name cannot be empty.', true);
+        await updateDoc(doc(db, col, id), data); say(msgId, 'Saved.'); load();
+      } else if (e.target.hasAttribute('data-rm') && confirm('Delete this entry?')) {
+        await deleteDoc(doc(db, col, id)); say(msgId, 'Deleted.'); load();
+      }
+    };
+    return { load, async add(data) { await addDoc(collection(db, col), data); say(msgId, 'Added.'); load(); } };
+  }
+  const VM = crud('vmembers', 'vlist', 'vmsg', [{ k: 'name', ph: 'Name' }, { k: 'order', ph: 'Order', type: 'number' }]);
+  const PT = crud('partners', 'ptlist', 'ptmsg', [{ k: 'name', ph: 'Name' }, { k: 'company', ph: 'Company name' }, { k: 'order', ph: 'Order', type: 'number' }]);
+  $('vadd').onclick = async () => {
+    const name = $('vn').value.trim(); if (!name) return say('vmsg', 'Enter a name.', true);
+    await VM.add({ name, order: +$('vo').value || 10 }); $('vn').value = '';
+  };
+  $('ptadd').onclick = async () => {
+    const name = $('ptn').value.trim(); if (!name) return say('ptmsg', 'Enter a name.', true);
+    await PT.add({ name, company: $('ptc').value.trim(), order: +$('pto').value || 10 }); $('ptn').value = ''; $('ptc').value = '';
+  };
+  loadEvents(); VM.load(); PT.load();
 
   // ---- members
   const DEFAULTS = [

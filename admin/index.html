@@ -19,7 +19,7 @@
 <div id="app" hidden>
   <header><b>HAF Admin</b><span><a href="../index.html" target="_blank">View site</a> <button id="out" class="b s">Log out</button></span></header>
   <main>
-    <div class="tabs"><button class="t on" data-t="ph">Photos</button><button class="t" data-t="mem">Members</button><button class="t" data-t="proj">Projects</button><button class="t" data-t="sug">Suggestions</button></div>
+    <div class="tabs"><button class="t on" data-t="ph">Photos</button><button class="t" data-t="mem">Members</button><button class="t" data-t="proj">Projects</button><button class="t" data-t="sug">Suggestions</button><button class="t" data-t="ev">Events</button><button class="t" data-t="vm">Valuable Members</button><button class="t" data-t="pt">Partners</button></div>
 
     <section id="ph" class="card">
       <h2>Upload photos</h2>
@@ -29,6 +29,34 @@
       <p class="msg" id="umsg"></p>
       <h2>Gallery photos</h2>
       <div id="plist" class="pgrid"></div>
+    </section>
+
+    <section id="ev" class="card" hidden>
+      <h2>Add upcoming programme / event</h2>
+      <label>Title<input id="et" maxlength="120" placeholder="e.g. Free Health Camp"></label>
+      <label>Short description<textarea id="ed" rows="3" maxlength="300"></textarea></label>
+      <label>YouTube link (optional)<input id="ey" maxlength="300" placeholder="https://youtube.com/..."></label>
+      <label>Poster image<input id="ep" type="file" accept="image/*"></label>
+      <button id="eup" class="b">Add event</button>
+      <p class="msg" id="emsg"></p>
+      <h2>Events on the site</h2>
+      <div id="elist"></div>
+    </section>
+
+    <section id="vm" class="card" hidden>
+      <h2>Add valuable member</h2>
+      <div class="row cr"><input id="vn" maxlength="80" placeholder="Name"><input id="vo" type="number" value="10" aria-label="Order"><button id="vadd" class="b">Add</button></div>
+      <p class="mut">Lower order number appears first. They show in "Our Valuable Members" on the site.</p>
+      <p class="msg" id="vmsg"></p>
+      <div id="vlist"></div>
+    </section>
+
+    <section id="pt" class="card" hidden>
+      <h2>Add supporter / partner</h2>
+      <div class="row cr"><input id="ptn" maxlength="80" placeholder="Name"><input id="ptc" maxlength="100" placeholder="Company name"><input id="pto" type="number" value="10" aria-label="Order"><button id="ptadd" class="b">Add</button></div>
+      <p class="mut">Lower order number appears first. They show in "Our Supporters &amp; Partners" on the site.</p>
+      <p class="msg" id="ptmsg"></p>
+      <div id="ptlist"></div>
     </section>
 
     <section id="sug" class="card" hidden>
