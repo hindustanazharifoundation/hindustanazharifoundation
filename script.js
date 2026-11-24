@@ -97,7 +97,7 @@ function renderValued(list) {
 }
 function renderPartners(list) {
   const l = [...list].sort(byOrder); $('partners').hidden = !l.length;
-  $('pts').innerHTML = l.map(x => `<div class="p"><h3>${esc(x.name)}</h3>${x.company ? `<span>${esc(x.company)}</span>` : ''}</div>`).join(''); reveal();
+  $('pts').innerHTML = l.map(x => `<div class="p"><h3>${esc(x.name || x.company)}</h3>${x.name && x.company ? `<span>${esc(x.company)}</span>` : ''}</div>`).join(''); reveal();
 }
 
 // ---- past projects (first 3 + View more). PDFs are stored in pieces in Firestore and joined on click.
