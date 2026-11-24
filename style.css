@@ -122,3 +122,11 @@ footer{background:#0f2417;color:#d9e5d9;padding:28px 0 calc(28px + env(safe-area
 .evb .btn{align-self:flex-start;margin-top:6px}
 .btn.yt{background:#e62117;color:#fff}
 #lb.single .pv,#lb.single .nx{display:none}
+
+.cl{list-style:none;margin:20px 0 0;padding:0;display:grid;gap:16px}
+.cl li{display:flex;gap:14px;align-items:center}.cl li>div{min-width:0;overflow-wrap:anywhere}
+.cl b{display:block;color:var(--navy);font-size:15px;line-height:1.3}
+.cl a{text-decoration:none}.cl a:hover{color:var(--saf);text-decoration:underline}
+.ci{flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;color:#fff;box-shadow:0 4px 10px rgba(0,0,0,.15)}
+.ci svg{width:22px;height:22px}
+.c-mail{background:#ea4335}.c-ph{background:#1c6b2c}.c-wa{background:#25d366}.c-ig{background:#c13584}.c-fb{background:#1877f2}.c-yt{background:#e62117}.c-pin{background:#d96a0b}.c-id{background:#3d5aa8}
