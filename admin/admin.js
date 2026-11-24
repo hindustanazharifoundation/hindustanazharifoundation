@@ -183,7 +183,7 @@ async function init() {
   };
 
   // ---- valuable members and supporters/partners (simple lists)
-  function crud(col, listId, msgId, fields) {
+  function crud(col, listId, msgId, fields, need) {
     async function load() {
       const s = await getDocs(collection(db, col));
       const l = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
@@ -193,7 +193,7 @@ async function init() {
       const row = e.target.closest('.mrow'); if (!row) return; const id = row.dataset.id;
       if (e.target.hasAttribute('data-save')) {
         const data = {}; row.querySelectorAll('input').forEach(i => { data[i.dataset.k] = i.type === 'number' ? (+i.value || 10) : i.value.trim(); });
-        if (!data.name) return say(msgId, 'Name cannot be empty.', true);
+        if (!need.some(k => data[k])) return say(msgId, 'Fill at least: ' + need.join(' or ') + '.', true);
         await updateDoc(doc(db, col, id), data); say(msgId, 'Saved.'); load();
       } else if (e.target.hasAttribute('data-rm') && confirm('Delete this entry?')) {
         await deleteDoc(doc(db, col, id)); say(msgId, 'Deleted.'); load();
@@ -201,15 +201,16 @@ async function init() {
     };
     return { load, async add(data) { await addDoc(collection(db, col), data); say(msgId, 'Added.'); load(); } };
   }
-  const VM = crud('vmembers', 'vlist', 'vmsg', [{ k: 'name', ph: 'Name' }, { k: 'order', ph: 'Order', type: 'number' }]);
-  const PT = crud('partners', 'ptlist', 'ptmsg', [{ k: 'name', ph: 'Name' }, { k: 'company', ph: 'Company name' }, { k: 'order', ph: 'Order', type: 'number' }]);
+  const VM = crud('vmembers', 'vlist', 'vmsg', [{ k: 'name', ph: 'Name' }, { k: 'order', ph: 'Order', type: 'number' }], ['name']);
+  const PT = crud('partners', 'ptlist', 'ptmsg', [{ k: 'name', ph: 'Name (optional)' }, { k: 'company', ph: 'Company name (optional)' }, { k: 'order', ph: 'Order', type: 'number' }], ['name', 'company']);
   $('vadd').onclick = async () => {
     const name = $('vn').value.trim(); if (!name) return say('vmsg', 'Enter a name.', true);
     await VM.add({ name, order: +$('vo').value || 10 }); $('vn').value = '';
   };
   $('ptadd').onclick = async () => {
-    const name = $('ptn').value.trim(); if (!name) return say('ptmsg', 'Enter a name.', true);
-    await PT.add({ name, company: $('ptc').value.trim(), order: +$('pto').value || 10 }); $('ptn').value = ''; $('ptc').value = '';
+    const name = $('ptn').value.trim(), company = $('ptc').value.trim();
+    if (!name && !company) return say('ptmsg', 'Enter a name or a company name.', true);
+    await PT.add({ name, company, order: +$('pto').value || 10 }); $('ptn').value = ''; $('ptc').value = '';
   };
   loadEvents(); VM.load(); PT.load();
 
