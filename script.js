@@ -13,7 +13,7 @@ const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.
   if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); setTimeout(() => e.target.style.transitionDelay = '', 1000); }
 }), { threshold: 0.12 }) : null;
 function reveal() {
-  document.querySelectorAll('h2,.v,.p,.work li,.motto,.goal,.tag,.ct>div,.gal button,.pj,.more,section p').forEach((el, i) => {
+  document.querySelectorAll('h2,.v,.p,.work li,.motto,.goal,.tag,.ct>div,.gal button,.pj,.ev,.more,section p').forEach((el, i) => {
     if (el.classList.contains('rv')) return;
     el.classList.add('rv'); el.style.transitionDelay = (i % 4) * 80 + 'ms';
     io ? io.observe(el) : el.classList.add('in');
@@ -51,7 +51,7 @@ $('more-members').onclick = e => { if (e.target.closest('button')) renderMembers
 // ---- gallery (first 15 + View more) and lightbox
 let photos = [], cur = 0;
 const lb = $('lb'), li = lb.querySelector('img'), cap = lb.querySelector('figcaption');
-function show(i) { cur = (i + photos.length) % photos.length; li.src = photos[cur].data; li.alt = photos[cur].caption || 'Gallery photo'; cap.textContent = photos[cur].caption || ''; lb.classList.add('on'); }
+function show(i) { lb.classList.remove('single'); cur = (i + photos.length) % photos.length; li.src = photos[cur].data; li.alt = photos[cur].caption || 'Gallery photo'; cap.textContent = photos[cur].caption || ''; lb.classList.add('on'); }
 function renderGallery(list, all) {
   if (list) photos = list;
   const g = $('gal');
@@ -70,9 +70,35 @@ lb.onclick = e => { if (e.target === lb) lb.classList.remove('on'); };
 document.addEventListener('keydown', e => {
   if (!lb.classList.contains('on')) return;
   if (e.key === 'Escape') lb.classList.remove('on');
+  if (lb.classList.contains('single')) return;
   if (e.key === 'ArrowLeft') show(cur - 1);
   if (e.key === 'ArrowRight') show(cur + 1);
 });
+
+// ---- upcoming programmes & events, valuable members, supporters & partners
+let EV = [];
+const safeUrl = u => /^https?:\/\//i.test(u || '') ? u : '';
+const byOrder = (a, b) => (a.order ?? 999) - (b.order ?? 999);
+function renderEvents(list) {
+  EV = list;
+  const g = $('evs');
+  if (!list.length) { g.innerHTML = '<p class="empty">Upcoming programmes will be announced here soon. Stay tuned!</p>'; reveal(); return; }
+  g.innerHTML = list.map((x, i) => `<article class="ev"><img src="${x.poster}" alt="${esc(x.title)} poster" data-i="${i}" loading="lazy"><div class="evb"><h3>${esc(x.title)}</h3>${x.desc ? `<p>${esc(x.desc)}</p>` : ''}${safeUrl(x.youtube) ? `<a class="btn yt" href="${esc(safeUrl(x.youtube))}" target="_blank" rel="noopener">Watch on YouTube</a>` : ''}</div></article>`).join('');
+  reveal();
+}
+$('evs').onclick = e => {
+  const im = e.target.closest('img[data-i]'); if (!im) return;
+  const x = EV[+im.dataset.i]; li.src = x.poster; li.alt = x.title; cap.textContent = x.title;
+  lb.classList.add('single', 'on');
+};
+function renderValued(list) {
+  const l = [...list].sort(byOrder); $('valued').hidden = !l.length;
+  $('vm').innerHTML = l.map(x => `<div class="p m"><h3>${esc(x.name)}</h3></div>`).join(''); reveal();
+}
+function renderPartners(list) {
+  const l = [...list].sort(byOrder); $('partners').hidden = !l.length;
+  $('pts').innerHTML = l.map(x => `<div class="p"><h3>${esc(x.name)}</h3>${x.company ? `<span>${esc(x.company)}</span>` : ''}</div>`).join(''); reveal();
+}
 
 // ---- past projects (first 3 + View more). PDFs are stored in pieces in Firestore and joined on click.
 let fsApi = null, PJ = [];
@@ -104,23 +130,26 @@ $('more-projs').onclick = e => { if (e.target.closest('button')) renderProjects(
 
 // ---- load data from Firebase (falls back to defaults if not set up / offline)
 async function load() {
-  if (!isConfigured) { renderMembers(DEFAULT_MEMBERS); renderGallery([]); renderProjects([]); return; }
+  if (!isConfigured) { renderMembers(DEFAULT_MEMBERS); renderGallery([]); renderProjects([]); renderEvents([]); renderValued([]); renderPartners([]); return; }
   try {
     const { initializeApp } = await import(FB + 'firebase-app.js');
     const { getFirestore, collection, getDocs, addDoc, serverTimestamp } = await import(FB + 'firebase-firestore.js');
     const db = getFirestore(initializeApp(firebaseConfig));
     fsApi = { db, collection, getDocs, addDoc, serverTimestamp };
-    const [ms, gs, ps] = await Promise.all([
+    const opt = n => getDocs(collection(db, n)).catch(() => ({ docs: [] }));
+    const [ms, gs, ps, es, vs, pt] = await Promise.all([
       getDocs(collection(db, 'members')), getDocs(collection(db, 'gallery')),
-      getDocs(collection(db, 'projects')).catch(() => ({ docs: [] }))
+      opt('projects'), opt('events'), opt('vmembers'), opt('partners')
     ]);
+    renderEvents(es.docs.map(d => d.data()).sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0)));
+    renderValued(vs.docs.map(d => d.data())); renderPartners(pt.docs.map(d => d.data()));
     renderProjects(ps.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0)));
     const members = ms.docs.map(d => d.data());
     renderMembers(members.length ? members : DEFAULT_MEMBERS);
     renderGallery(gs.docs.map(d => d.data()).sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0)));
   } catch (err) {
     console.error(err);
-    renderMembers(DEFAULT_MEMBERS); renderGallery([]); renderProjects([]);
+    renderMembers(DEFAULT_MEMBERS); renderGallery([]); renderProjects([]); renderEvents([]); renderValued([]); renderPartners([]);
   }
 }
 

@@ -30,6 +30,25 @@ service cloud.firestore {
         allow delete: if true;
       }
     }
+    match /events/{id} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['poster','title','desc','youtube','createdAt'])
+        && request.resource.data.title is string && request.resource.data.title.size() < 150
+        && (!('poster' in request.resource.data) || request.resource.data.poster.size() < 1000000);
+      allow delete: if true;
+    }
+    match /vmembers/{id} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['name','order'])
+        && request.resource.data.name is string && request.resource.data.name.size() < 80;
+      allow delete: if true;
+    }
+    match /partners/{id} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['name','company','order'])
+        && request.resource.data.name is string && request.resource.data.name.size() < 80;
+      allow delete: if true;
+    }
     match /members/{id} {
       allow read: if true;
       allow create, update: if request.resource.data.keys().hasOnly(['name','type','role','order'])
