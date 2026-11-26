@@ -13,7 +13,7 @@ const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.
   if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); setTimeout(() => e.target.style.transitionDelay = '', 1000); }
 }), { threshold: 0.12 }) : null;
 function reveal() {
-  document.querySelectorAll('h2,.v,.p,.work li,.motto,.goal,.tag,.ct>div,.gal button,.pj,.ev,.more,section p').forEach((el, i) => {
+  document.querySelectorAll('h2,.v,.p,.work li,.motto,.goal,.tag,.ct>div,.gal button,.pj,.ev,.more,.fpc,.fp figure,blockquote,section p').forEach((el, i) => {
     if (el.classList.contains('rv')) return;
     el.classList.add('rv'); el.style.transitionDelay = (i % 4) * 80 + 'ms';
     io ? io.observe(el) : el.classList.add('in');
@@ -174,6 +174,11 @@ $('sf').onsubmit = async e => {
   }
   $('sb').disabled = false;
 };
+
+// click-to-enlarge for single images (e.g. Kidzee concept design)
+document.querySelectorAll('img.zoomable').forEach(im => im.onclick = () => {
+  li.src = im.src; li.alt = im.alt; cap.textContent = im.alt; lb.classList.add('single', 'on');
+});
 
 reveal();
 const ready = load();
