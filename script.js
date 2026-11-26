@@ -111,12 +111,12 @@ function renderProjects(list, all) {
   moreBtn('more-projs', all ? 0 : PJ.length - shown.length);
   reveal();
 }
-async function openPdf(id) {
+async function openPdf(col, id) {
   const w = window.open('', '_blank');
   if (w) w.document.write('<p style="font:18px sans-serif;padding:24px">Loading PDF…</p>');
   try {
     const { db, collection, getDocs } = fsApi;
-    const snap = await getDocs(collection(db, 'projects', id, 'chunks'));
+    const snap = await getDocs(collection(db, col, id, 'chunks'));
     const parts = snap.docs.map(d => d.data()).sort((a, b) => a.i - b.i).map(c => Uint8Array.from(atob(c.d), ch => ch.charCodeAt(0)));
     if (!parts.length) throw new Error('empty');
     const url = URL.createObjectURL(new Blob(parts, { type: 'application/pdf' }));
@@ -125,22 +125,37 @@ async function openPdf(id) {
     console.error(err); if (w) w.close(); alert('Could not open the PDF. Please try again.');
   }
 }
-$('projs').onclick = e => { const b = e.target.closest('.pj'); if (b && fsApi) openPdf(b.dataset.id); };
+$('projs').onclick = e => { const b = e.target.closest('.pj'); if (b && fsApi) openPdf('projects', b.dataset.id); };
 $('more-projs').onclick = e => { if (e.target.closest('button')) renderProjects(null, true); };
+
+// ---- future plans: image + PDF button (managed from the admin panel; defaults to the Kidzee concept image)
+$('fppdf').onclick = () => { if (fsApi) openPdf('site', 'future'); };
+function renderFuture(d) {
+  if (!d) return;
+  const hasImg = !!d.image || !d.hideImage, hasPdf = d.pdfChunks > 0;
+  if (d.image) $('fpimg').src = d.image;
+  if (typeof d.caption === 'string') { $('fpcap').textContent = d.caption; $('fpimg').alt = d.caption || 'Future plan image'; }
+  $('fpimg').style.display = hasImg ? '' : 'none';
+  $('fpcap').style.display = hasImg && $('fpcap').textContent ? '' : 'none';
+  $('fpb').hidden = !hasPdf;
+  $('fpfig').hidden = !hasImg && !hasPdf;
+}
 
 // ---- load data from Firebase (falls back to defaults if not set up / offline)
 async function load() {
   if (!isConfigured) { renderMembers(DEFAULT_MEMBERS); renderGallery([]); renderProjects([]); renderEvents([]); renderValued([]); renderPartners([]); return; }
   try {
     const { initializeApp } = await import(FB + 'firebase-app.js');
-    const { getFirestore, collection, getDocs, addDoc, serverTimestamp } = await import(FB + 'firebase-firestore.js');
+    const { getFirestore, collection, getDocs, getDoc, doc, addDoc, serverTimestamp } = await import(FB + 'firebase-firestore.js');
     const db = getFirestore(initializeApp(firebaseConfig));
     fsApi = { db, collection, getDocs, addDoc, serverTimestamp };
     const opt = n => getDocs(collection(db, n)).catch(() => ({ docs: [] }));
-    const [ms, gs, ps, es, vs, pt] = await Promise.all([
+    const [ms, gs, ps, es, vs, pt, fp] = await Promise.all([
       getDocs(collection(db, 'members')), getDocs(collection(db, 'gallery')),
-      opt('projects'), opt('events'), opt('vmembers'), opt('partners')
+      opt('projects'), opt('events'), opt('vmembers'), opt('partners'),
+      getDoc(doc(db, 'site', 'future')).catch(() => null)
     ]);
+    renderFuture(fp && fp.exists() ? fp.data() : null);
     renderEvents(es.docs.map(d => d.data()).sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0)));
     renderValued(vs.docs.map(d => d.data())); renderPartners(pt.docs.map(d => d.data()));
     renderProjects(ps.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0)));

@@ -30,6 +30,19 @@ service cloud.firestore {
         allow delete: if true;
       }
     }
+    match /site/{id} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['image','hideImage','caption','pdfName','pdfSize','pdfChunks','updatedAt'])
+        && (!('image' in request.resource.data) || request.resource.data.image.size() < 1000000)
+        && (!('caption' in request.resource.data) || request.resource.data.caption.size() < 200);
+      allow delete: if true;
+      match /chunks/{cid} {
+        allow read: if true;
+        allow create, update: if request.resource.data.keys().hasOnly(['i','d'])
+          && request.resource.data.d is string && request.resource.data.d.size() < 900000;
+        allow delete: if true;
+      }
+    }
     match /events/{id} {
       allow read: if true;
       allow create, update: if request.resource.data.keys().hasOnly(['poster','title','desc','youtube','createdAt'])
