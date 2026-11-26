@@ -27,7 +27,7 @@ try { if (sessionStorage.getItem('haf_admin') === '1') unlock(); } catch (e) {}
 async function init() {
   const { initializeApp } = await import(FB + 'firebase-app.js');
   const fs = await import(FB + 'firebase-firestore.js');
-  const { getFirestore, collection, getDocs, addDoc, setDoc, updateDoc, deleteDoc, doc, serverTimestamp } = fs;
+  const { getFirestore, collection, getDocs, getDoc, addDoc, setDoc, updateDoc, deleteDoc, deleteField, doc, serverTimestamp } = fs;
   const db = getFirestore(initializeApp(firebaseConfig));
 
   loadPhotos(); loadMembers(); loadProjects();
@@ -48,7 +48,7 @@ async function init() {
   // ---- tabs
   document.querySelectorAll('.t').forEach(b => b.onclick = () => {
     document.querySelectorAll('.t').forEach(x => x.classList.toggle('on', x === b));
-    ['ph', 'mem', 'proj', 'sug', 'ev', 'vm', 'pt'].forEach(id => $(id).hidden = id !== b.dataset.t);
+    ['ph', 'mem', 'proj', 'sug', 'ev', 'vm', 'pt', 'fp'].forEach(id => $(id).hidden = id !== b.dataset.t);
   });
 
   // ---- photos: shrink in the browser, store inside Firestore (no paid Storage plan needed)
@@ -213,6 +213,71 @@ async function init() {
     await PT.add({ name, company, order: +$('pto').value || 10 }); $('ptn').value = ''; $('ptc').value = '';
   };
   loadEvents(); VM.load(); PT.load();
+
+  // ---- future plans: image + project PDF (one document: site/future, PDF pieces in site/future/chunks)
+  const FP = doc(db, 'site', 'future'), FP_CAP = 'Concept design of our planned HAF Kidzee centre';
+  const wipeFp = async () => { const s = await getDocs(collection(db, 'site', 'future', 'chunks')); for (const d of s.docs) await deleteDoc(d.ref); };
+  async function loadFp() {
+    let d = {};
+    try { const s = await getDoc(FP); if (s.exists()) d = s.data(); } catch (e) { console.error(e); say('fpmsg', 'Could not load. Publish the latest firestore.rules and refresh.', true); }
+    const shown = d.image || (d.hideImage ? '' : '../kidzee.jpg');
+    $('fpprev').innerHTML = shown ? `<img src="${shown}" alt=""><p class="mut">${d.image ? 'Your uploaded image.' : 'Default Kidzee image (nothing uploaded yet).'}</p>` : '<p class="mut">No image is shown on the site right now.</p>';
+    $('fpdel').hidden = !shown;
+    $('fpc').value = typeof d.caption === 'string' ? d.caption : FP_CAP;
+    $('fppinfo').textContent = d.pdfChunks ? `Current PDF: ${d.pdfName} · ${mb(d.pdfSize || 0)}` : 'No PDF added yet, so the button is hidden on the site.';
+    $('fppdel').hidden = !d.pdfChunks;
+  }
+  $('fpup').onclick = async () => {
+    const f = $('fpf').files[0]; if (!f) return say('fpmsg', 'Choose an image first.', true);
+    $('fpup').disabled = true; say('fpmsg', 'Uploading…');
+    try {
+      const image = await shrink(f);
+      await setDoc(FP, { image, hideImage: false, updatedAt: serverTimestamp() }, { merge: true });
+      $('fpf').value = ''; say('fpmsg', 'Done. Image updated on the site.');
+    } catch (e) { console.error(e); say('fpmsg', 'Upload failed. Check your internet and Firestore rules, then try again.', true); }
+    $('fpup').disabled = false; loadFp();
+  };
+  $('fpdel').onclick = async () => {
+    if (!confirm('Remove the image from the Future Plans section?')) return;
+    try { await setDoc(FP, { image: deleteField(), hideImage: true, updatedAt: serverTimestamp() }, { merge: true }); say('fpmsg', 'Image removed.'); }
+    catch (e) { console.error(e); say('fpmsg', 'Could not remove. Try again.', true); }
+    loadFp();
+  };
+  $('fpcs').onclick = async () => {
+    try { await setDoc(FP, { caption: $('fpc').value.trim(), updatedAt: serverTimestamp() }, { merge: true }); say('fpmsg', 'Caption saved.'); }
+    catch (e) { console.error(e); say('fpmsg', 'Could not save the caption.', true); }
+    loadFp();
+  };
+  $('fppup').onclick = async () => {
+    const f = $('fppf').files[0];
+    if (!f) return say('fppmsg', 'Choose a PDF file.', true);
+    if (f.type !== 'application/pdf' && !/\.pdf$/i.test(f.name)) return say('fppmsg', 'Only PDF files are allowed.', true);
+    if (f.size > MAXPDF) return say('fppmsg', `This PDF is ${mb(f.size)}. Please compress it below 10 MB (ilovepdf.com / smallpdf.com) and try again.`, true);
+    $('fppup').disabled = true; const n = Math.ceil(f.size / CHUNK);
+    try {
+      await wipeFp();
+      for (let i = 0; i < n; i++) {
+        say('fppmsg', `Uploading part ${i + 1} of ${n}…`);
+        const d = await readB64(f.slice(i * CHUNK, (i + 1) * CHUNK));
+        await setDoc(doc(db, 'site', 'future', 'chunks', String(i).padStart(3, '0')), { i, d });
+      }
+      await setDoc(FP, { pdfName: f.name, pdfSize: f.size, pdfChunks: n, updatedAt: serverTimestamp() }, { merge: true });
+      $('fppf').value = ''; say('fppmsg', 'Done. PDF button is now live under the image.');
+    } catch (e) {
+      console.error(e);
+      try { await wipeFp(); await setDoc(FP, { pdfName: deleteField(), pdfSize: deleteField(), pdfChunks: deleteField() }, { merge: true }); } catch (_) {}
+      say('fppmsg', 'Upload failed. Check your internet and Firestore rules, then try again.', true);
+    }
+    $('fppup').disabled = false; loadFp();
+  };
+  $('fppdel').onclick = async () => {
+    if (!confirm('Delete the PDF? The button will disappear from the site.')) return;
+    say('fppmsg', 'Deleting…');
+    try { await wipeFp(); await setDoc(FP, { pdfName: deleteField(), pdfSize: deleteField(), pdfChunks: deleteField(), updatedAt: serverTimestamp() }, { merge: true }); say('fppmsg', 'PDF deleted.'); }
+    catch (e) { console.error(e); say('fppmsg', 'Could not delete. Try again.', true); }
+    loadFp();
+  };
+  loadFp();
 
   // ---- members
   const DEFAULTS = [
