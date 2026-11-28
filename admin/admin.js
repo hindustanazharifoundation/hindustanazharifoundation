@@ -48,7 +48,7 @@ async function init() {
   // ---- tabs
   document.querySelectorAll('.t').forEach(b => b.onclick = () => {
     document.querySelectorAll('.t').forEach(x => x.classList.toggle('on', x === b));
-    ['ph', 'mem', 'proj', 'sug', 'ev', 'vm', 'pt', 'fp'].forEach(id => $(id).hidden = id !== b.dataset.t);
+    ['ph', 'mem', 'proj', 'sug', 'ev', 'vm', 'pt', 'fp', 'ar'].forEach(id => $(id).hidden = id !== b.dataset.t);
   });
 
   // ---- photos: shrink in the browser, store inside Firestore (no paid Storage plan needed)
@@ -278,6 +278,46 @@ async function init() {
     loadFp();
   };
   loadFp();
+
+  // ---- annual financial report PDF (site/annual, pieces in site/annual/chunks)
+  const AR = doc(db, 'site', 'annual');
+  const wipeAr = async () => { const s = await getDocs(collection(db, 'site', 'annual', 'chunks')); for (const d of s.docs) await deleteDoc(d.ref); };
+  async function loadAr() {
+    let d = {};
+    try { const s = await getDoc(AR); if (s.exists()) d = s.data(); } catch (e) { console.error(e); say('armsg', 'Could not load. Publish the latest firestore.rules and refresh.', true); }
+    $('arinfo').textContent = d.pdfChunks ? `Current PDF: ${d.pdfName} · ${mb(d.pdfSize || 0)}` : 'No report uploaded yet.';
+    $('ardel').hidden = !d.pdfChunks;
+  }
+  $('arup').onclick = async () => {
+    const f = $('arf').files[0];
+    if (!f) return say('armsg', 'Choose a PDF file.', true);
+    if (f.type !== 'application/pdf' && !/\.pdf$/i.test(f.name)) return say('armsg', 'Only PDF files are allowed.', true);
+    if (f.size > MAXPDF) return say('armsg', `This PDF is ${mb(f.size)}. Please compress it below 10 MB (ilovepdf.com / smallpdf.com) and try again.`, true);
+    $('arup').disabled = true; const n = Math.ceil(f.size / CHUNK);
+    try {
+      await wipeAr();
+      for (let i = 0; i < n; i++) {
+        say('armsg', `Uploading part ${i + 1} of ${n}…`);
+        const d = await readB64(f.slice(i * CHUNK, (i + 1) * CHUNK));
+        await setDoc(doc(db, 'site', 'annual', 'chunks', String(i).padStart(3, '0')), { i, d });
+      }
+      await setDoc(AR, { pdfName: f.name, pdfSize: f.size, pdfChunks: n, updatedAt: serverTimestamp() }, { merge: true });
+      $('arf').value = ''; say('armsg', 'Done. The report button is now live on the site.');
+    } catch (e) {
+      console.error(e);
+      try { await wipeAr(); await setDoc(AR, { pdfName: deleteField(), pdfSize: deleteField(), pdfChunks: deleteField() }, { merge: true }); } catch (_) {}
+      say('armsg', 'Upload failed. Check your internet and Firestore rules, then try again.', true);
+    }
+    $('arup').disabled = false; loadAr();
+  };
+  $('ardel').onclick = async () => {
+    if (!confirm('Delete the annual report PDF? The button will disappear from the site.')) return;
+    say('armsg', 'Deleting…');
+    try { await wipeAr(); await setDoc(AR, { pdfName: deleteField(), pdfSize: deleteField(), pdfChunks: deleteField(), updatedAt: serverTimestamp() }, { merge: true }); say('armsg', 'PDF deleted.'); }
+    catch (e) { console.error(e); say('armsg', 'Could not delete. Try again.', true); }
+    loadAr();
+  };
+  loadAr();
 
   // ---- members
   const DEFAULTS = [

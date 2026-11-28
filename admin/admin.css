@@ -34,4 +34,4 @@ textarea{display:block;width:100%;padding:10px;border:1px solid #c9d3c2;border-r
 .evrow>div{flex:1;display:grid;gap:6px;align-content:start}.evrow input{margin:0}.evrow .btns{display:flex;gap:8px}
 
 .fpprev img{max-width:100%;max-height:260px;border-radius:8px;display:block;margin-bottom:8px}
-#fp .b{margin:4px 6px 4px 0}
+#fp .b,#ar .b{margin:4px 6px 4px 0}

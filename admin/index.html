@@ -19,7 +19,7 @@
 <div id="app" hidden>
   <header><b>HAF Admin</b><span><a href="../index.html" target="_blank">View site</a> <button id="out" class="b s">Log out</button></span></header>
   <main>
-    <div class="tabs"><button class="t on" data-t="ph">Photos</button><button class="t" data-t="mem">FOUNDERS</button><button class="t" data-t="proj">Projects</button><button class="t" data-t="sug">Suggestions</button><button class="t" data-t="ev">Events</button><button class="t" data-t="vm">Valuable Members</button><button class="t" data-t="pt">Partners</button><button class="t" data-t="fp">Future Plan</button></div>
+    <div class="tabs"><button class="t on" data-t="ph">Photos</button><button class="t" data-t="mem">FOUNDERS</button><button class="t" data-t="proj">Projects</button><button class="t" data-t="sug">Suggestions</button><button class="t" data-t="ev">Events</button><button class="t" data-t="vm">Valuable Members</button><button class="t" data-t="pt">Partners</button><button class="t" data-t="fp">Future Plan</button><button class="t" data-t="ar">Annual Report</button></div>
 
     <section id="ph" class="card">
       <h2>Upload photos</h2>
@@ -45,6 +45,15 @@
       <label>PDF file (up to 10 MB)<input id="fppf" type="file" accept="application/pdf"></label>
       <button id="fppup" class="b">Upload / Replace PDF</button> <button id="fppdel" class="b d">Delete PDF</button>
       <p class="msg" id="fppmsg"></p>
+    </section>
+
+    <section id="ar" class="card" hidden>
+      <h2>Annual Financial Report (PDF)</h2>
+      <p class="mut">Shows a "View Annual Financial Report" button in the Annual Financial Report section of the site. Without a PDF the button stays hidden.</p>
+      <p class="mut" id="arinfo"></p>
+      <label>PDF file (up to 10 MB)<input id="arf" type="file" accept="application/pdf"></label>
+      <button id="arup" class="b">Upload / Replace PDF</button> <button id="ardel" class="b d">Delete PDF</button>
+      <p class="msg" id="armsg"></p>
     </section>
 
     <section id="ev" class="card" hidden>
