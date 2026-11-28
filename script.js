@@ -141,6 +141,10 @@ function renderFuture(d) {
   $('fpfig').hidden = !hasImg && !hasPdf;
 }
 
+// ---- annual financial report PDF (uploaded from the admin panel)
+$('arpdf').onclick = () => { if (fsApi) openPdf('site', 'annual'); };
+const renderAnnual = d => { $('arb').hidden = !(d && d.pdfChunks > 0); };
+
 // ---- load data from Firebase (falls back to defaults if not set up / offline)
 async function load() {
   if (!isConfigured) { renderMembers(DEFAULT_MEMBERS); renderGallery([]); renderProjects([]); renderEvents([]); renderValued([]); renderPartners([]); return; }
@@ -150,11 +154,13 @@ async function load() {
     const db = getFirestore(initializeApp(firebaseConfig));
     fsApi = { db, collection, getDocs, addDoc, serverTimestamp };
     const opt = n => getDocs(collection(db, n)).catch(() => ({ docs: [] }));
-    const [ms, gs, ps, es, vs, pt, fp] = await Promise.all([
+    const [ms, gs, ps, es, vs, pt, fp, ar] = await Promise.all([
       getDocs(collection(db, 'members')), getDocs(collection(db, 'gallery')),
       opt('projects'), opt('events'), opt('vmembers'), opt('partners'),
-      getDoc(doc(db, 'site', 'future')).catch(() => null)
+      getDoc(doc(db, 'site', 'future')).catch(() => null),
+      getDoc(doc(db, 'site', 'annual')).catch(() => null)
     ]);
+    renderAnnual(ar && ar.exists() ? ar.data() : null);
     renderFuture(fp && fp.exists() ? fp.data() : null);
     renderEvents(es.docs.map(d => d.data()).sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0)));
     renderValued(vs.docs.map(d => d.data())); renderPartners(pt.docs.map(d => d.data()));

@@ -146,3 +146,7 @@ blockquote{margin:22px 0;padding:16px 20px;border-left:4px solid var(--saf);back
 .belief h2{color:#fff}.belief p{margin:0 0 14px;font-size:19px}
 .belief .tag{font-family:Marcellus,Georgia,serif;font-size:clamp(24px,3.4vw,34px);color:#ffcf9e;margin-top:26px}
 
+
+.fpb{text-align:center;margin:14px 0 0}.fpb .btn{border:0;cursor:pointer;font:inherit;font-weight:700;margin:0}
+
+.arb{margin:18px 0 0}.arb .btn{border:0;cursor:pointer;font:inherit;font-weight:700;margin:0}
