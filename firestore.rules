@@ -30,6 +30,18 @@ service cloud.firestore {
         allow delete: if true;
       }
     }
+    match /reports/{id} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['title','fileName','size','chunks','createdAt'])
+        && request.resource.data.title is string && request.resource.data.title.size() < 120;
+      allow delete: if true;
+      match /chunks/{cid} {
+        allow read: if true;
+        allow create, update: if request.resource.data.keys().hasOnly(['i','d'])
+          && request.resource.data.d is string && request.resource.data.d.size() < 900000;
+        allow delete: if true;
+      }
+    }
     match /site/{id} {
       allow read: if true;
       allow create, update: if request.resource.data.keys().hasOnly(['image','hideImage','caption','pdfName','pdfSize','pdfChunks','updatedAt'])

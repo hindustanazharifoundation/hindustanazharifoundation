@@ -1,7 +1,7 @@
 import { firebaseConfig, isConfigured, FB } from './firebase-config.js';
 
 const $ = id => document.getElementById(id);
-const LIMITS = { projects: 3, photos: 15, members: 20 };
+const LIMITS = { projects: 3, photos: 15, members: 20, reports: 2 };
 
 // ---- mobile menu
 const mb = $('mb'), ln = document.querySelector('.links');
@@ -141,13 +141,23 @@ function renderFuture(d) {
   $('fpfig').hidden = !hasImg && !hasPdf;
 }
 
-// ---- annual financial report PDF (uploaded from the admin panel)
-$('arpdf').onclick = () => { if (fsApi) openPdf('site', 'annual'); };
-const renderAnnual = d => { $('arb').hidden = !(d && d.pdfChunks > 0); };
+// ---- annual financial reports (latest 2 + View more). Heading e.g. "Financial Year 2025-26"; PDFs open from Firestore like projects.
+let RP = [];
+function renderReports(list, all) {
+  if (list) RP = [...list].sort((a, b) => String(b.title).localeCompare(String(a.title), undefined, { numeric: true }));
+  const g = $('reps');
+  if (!RP.length) { g.innerHTML = '<p class="empty">Financial reports will be published here soon.</p>'; moreBtn('more-reps', 0); reveal(); return; }
+  const shown = all ? RP : RP.slice(0, LIMITS.reports);
+  g.innerHTML = shown.map(p => `<button class="pj" data-id="${esc(p.id)}"><span class="pdf">PDF</span><span class="pt">${esc(p.title)}</span><span class="go">View report →</span></button>`).join('');
+  moreBtn('more-reps', all ? 0 : RP.length - shown.length);
+  reveal();
+}
+$('reps').onclick = e => { const b = e.target.closest('.pj'); if (b && fsApi) openPdf('reports', b.dataset.id); };
+$('more-reps').onclick = e => { if (e.target.closest('button')) renderReports(null, true); };
 
 // ---- load data from Firebase (falls back to defaults if not set up / offline)
 async function load() {
-  if (!isConfigured) { renderMembers(DEFAULT_MEMBERS); renderGallery([]); renderProjects([]); renderEvents([]); renderValued([]); renderPartners([]); return; }
+  if (!isConfigured) { renderMembers(DEFAULT_MEMBERS); renderGallery([]); renderProjects([]); renderEvents([]); renderValued([]); renderPartners([]); renderReports([]); return; }
   try {
     const { initializeApp } = await import(FB + 'firebase-app.js');
     const { getFirestore, collection, getDocs, getDoc, doc, addDoc, serverTimestamp } = await import(FB + 'firebase-firestore.js');
@@ -158,9 +168,9 @@ async function load() {
       getDocs(collection(db, 'members')), getDocs(collection(db, 'gallery')),
       opt('projects'), opt('events'), opt('vmembers'), opt('partners'),
       getDoc(doc(db, 'site', 'future')).catch(() => null),
-      getDoc(doc(db, 'site', 'annual')).catch(() => null)
+      opt('reports')
     ]);
-    renderAnnual(ar && ar.exists() ? ar.data() : null);
+    renderReports(ar.docs.map(d => ({ id: d.id, ...d.data() })));
     renderFuture(fp && fp.exists() ? fp.data() : null);
     renderEvents(es.docs.map(d => d.data()).sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0)));
     renderValued(vs.docs.map(d => d.data())); renderPartners(pt.docs.map(d => d.data()));
@@ -170,7 +180,7 @@ async function load() {
     renderGallery(gs.docs.map(d => d.data()).sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0)));
   } catch (err) {
     console.error(err);
-    renderMembers(DEFAULT_MEMBERS); renderGallery([]); renderProjects([]); renderEvents([]); renderValued([]); renderPartners([]);
+    renderMembers(DEFAULT_MEMBERS); renderGallery([]); renderProjects([]); renderEvents([]); renderValued([]); renderPartners([]); renderReports([]);
   }
 }
 
