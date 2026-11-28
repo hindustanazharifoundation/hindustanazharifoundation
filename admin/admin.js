@@ -279,45 +279,51 @@ async function init() {
   };
   loadFp();
 
-  // ---- annual financial report PDF (site/annual, pieces in site/annual/chunks)
-  const AR = doc(db, 'site', 'annual');
-  const wipeAr = async () => { const s = await getDocs(collection(db, 'site', 'annual', 'chunks')); for (const d of s.docs) await deleteDoc(d.ref); };
-  async function loadAr() {
-    let d = {};
-    try { const s = await getDoc(AR); if (s.exists()) d = s.data(); } catch (e) { console.error(e); say('armsg', 'Could not load. Publish the latest firestore.rules and refresh.', true); }
-    $('arinfo').textContent = d.pdfChunks ? `Current PDF: ${d.pdfName} · ${mb(d.pdfSize || 0)}` : 'No report uploaded yet.';
-    $('ardel').hidden = !d.pdfChunks;
-  }
+  // ---- annual financial reports (collection "reports", PDF pieces in reports/<id>/chunks)
+  const wipeRep = async id => { const s = await getDocs(collection(db, 'reports', id, 'chunks')); for (const d of s.docs) await deleteDoc(d.ref); };
   $('arup').onclick = async () => {
-    const f = $('arf').files[0];
+    const title = $('arh').value.trim(), f = $('arf').files[0];
+    if (!title) return say('armsg', 'Enter the heading (e.g. Financial Year 2025-26).', true);
     if (!f) return say('armsg', 'Choose a PDF file.', true);
     if (f.type !== 'application/pdf' && !/\.pdf$/i.test(f.name)) return say('armsg', 'Only PDF files are allowed.', true);
     if (f.size > MAXPDF) return say('armsg', `This PDF is ${mb(f.size)}. Please compress it below 10 MB (ilovepdf.com / smallpdf.com) and try again.`, true);
-    $('arup').disabled = true; const n = Math.ceil(f.size / CHUNK);
+    $('arup').disabled = true;
+    const ref = doc(collection(db, 'reports')), n = Math.ceil(f.size / CHUNK);
     try {
-      await wipeAr();
       for (let i = 0; i < n; i++) {
         say('armsg', `Uploading part ${i + 1} of ${n}…`);
         const d = await readB64(f.slice(i * CHUNK, (i + 1) * CHUNK));
-        await setDoc(doc(db, 'site', 'annual', 'chunks', String(i).padStart(3, '0')), { i, d });
+        await setDoc(doc(db, 'reports', ref.id, 'chunks', String(i).padStart(3, '0')), { i, d });
       }
-      await setDoc(AR, { pdfName: f.name, pdfSize: f.size, pdfChunks: n, updatedAt: serverTimestamp() }, { merge: true });
-      $('arf').value = ''; say('armsg', 'Done. The report button is now live on the site.');
+      await setDoc(ref, { title, fileName: f.name, size: f.size, chunks: n, createdAt: serverTimestamp() });
+      $('arh').value = ''; $('arf').value = ''; say('armsg', 'Done. Report added to the site.');
     } catch (e) {
-      console.error(e);
-      try { await wipeAr(); await setDoc(AR, { pdfName: deleteField(), pdfSize: deleteField(), pdfChunks: deleteField() }, { merge: true }); } catch (_) {}
+      console.error(e); try { await wipeRep(ref.id); } catch (_) {}
       say('armsg', 'Upload failed. Check your internet and Firestore rules, then try again.', true);
     }
-    $('arup').disabled = false; loadAr();
+    $('arup').disabled = false; loadReports();
   };
-  $('ardel').onclick = async () => {
-    if (!confirm('Delete the annual report PDF? The button will disappear from the site.')) return;
-    say('armsg', 'Deleting…');
-    try { await wipeAr(); await setDoc(AR, { pdfName: deleteField(), pdfSize: deleteField(), pdfChunks: deleteField(), updatedAt: serverTimestamp() }, { merge: true }); say('armsg', 'PDF deleted.'); }
-    catch (e) { console.error(e); say('armsg', 'Could not delete. Try again.', true); }
-    loadAr();
+  async function loadReports() {
+    let l = [];
+    try {
+      const s = await getDocs(collection(db, 'reports'));
+      l = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => String(b.title).localeCompare(String(a.title), undefined, { numeric: true }));
+    } catch (e) { console.error(e); say('armsg', 'Could not load. Publish the latest firestore.rules and refresh.', true); }
+    $('arlist').innerHTML = l.length ? l.map(p => `<div class="mrow" data-id="${p.id}"><div class="row cr"><input class="rt" value="${esc(p.title)}" aria-label="Heading"><button class="b s" data-rsave>Save</button><button class="b s d" data-rrm>Delete</button></div><small class="mut">${esc(p.fileName)} · ${mb(p.size || 0)}</small></div>`).join('') : '<p class="mut">No reports yet.</p>';
+  }
+  $('arlist').onclick = async e => {
+    const row = e.target.closest('.mrow'); if (!row) return; const id = row.dataset.id;
+    if (e.target.hasAttribute('data-rsave')) {
+      const title = row.querySelector('.rt').value.trim(); if (!title) return say('armsg', 'Heading cannot be empty.', true);
+      try { await updateDoc(doc(db, 'reports', id), { title }); say('armsg', 'Saved.'); } catch (err) { console.error(err); say('armsg', 'Could not save.', true); }
+      loadReports();
+    } else if (e.target.hasAttribute('data-rrm') && confirm('Delete this report and its PDF?')) {
+      say('armsg', 'Deleting…');
+      try { await wipeRep(id); await deleteDoc(doc(db, 'reports', id)); say('armsg', 'Deleted.'); } catch (err) { console.error(err); say('armsg', 'Could not delete.', true); }
+      loadReports();
+    }
   };
-  loadAr();
+  loadReports();
 
   // ---- members
   const DEFAULTS = [

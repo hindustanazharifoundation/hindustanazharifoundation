@@ -48,12 +48,14 @@
     </section>
 
     <section id="ar" class="card" hidden>
-      <h2>Annual Financial Report (PDF)</h2>
-      <p class="mut">Shows a "View Annual Financial Report" button in the Annual Financial Report section of the site. Without a PDF the button stays hidden.</p>
-      <p class="mut" id="arinfo"></p>
+      <h2>Add annual financial report (PDF)</h2>
+      <label>Heading<input id="arh" maxlength="100" placeholder="e.g. Financial Year 2025-26"></label>
       <label>PDF file (up to 10 MB)<input id="arf" type="file" accept="application/pdf"></label>
-      <button id="arup" class="b">Upload / Replace PDF</button> <button id="ardel" class="b d">Delete PDF</button>
+      <button id="arup" class="b">Add report</button>
+      <p class="mut">Add as many reports as you like. The site shows 2 at first (latest year first) and a "View more" button for the rest.</p>
       <p class="msg" id="armsg"></p>
+      <h2>Reports on the site</h2>
+      <div id="arlist"></div>
     </section>
 
     <section id="ev" class="card" hidden>
